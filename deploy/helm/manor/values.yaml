@@ -1,0 +1,9 @@
+operator:
+  image:
+    registry: gcr.io/manor
+    tag: operator:0.0.0-dirty
+
+app_builder:
+  image:
+    registry: gcr.io/manor
+    tag: app-builder:0.0.0-dirty

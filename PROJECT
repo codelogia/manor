@@ -1,7 +1,0 @@
-domain: codelogia.com
-layout: go.kubebuilder.io/v2
-projectName: manor
-repo: github.com/codelogia/manor-operator
-version: 3-alpha
-plugins:
-  go.sdk.operatorframework.io/v2-alpha: {}

@@ -1,0 +1,9 @@
+test \
+  --test_output=errors \
+  --workspace_status_command="build/workspace_status.sh"
+
+build \
+  --workspace_status_command="build/workspace_status.sh"
+
+run \
+  --workspace_status_command="build/workspace_status.sh"

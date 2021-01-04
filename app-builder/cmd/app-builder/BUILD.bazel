@@ -1,0 +1,63 @@
+load("@io_bazel_rules_docker//container:container.bzl", "container_bundle", "container_image")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "app-builder_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/codelogia/manor/app-builder/cmd/app-builder",
+    visibility = ["//visibility:private"],
+    deps = ["//app-builder/pkg/server"],
+)
+
+go_binary(
+    name = "app-builder",
+    embed = [":app-builder_lib"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
+    pure = "on",
+    static = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "app-builder_linux",
+    out = "app-builder",
+    embed = [":app-builder_lib"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    static = "on",
+    visibility = ["//visibility:private"],
+)
+
+container_image(
+    name = "app-builder_image",
+    cmd = ["/app-builder"],
+    entrypoint = [
+        "/dumb-init",
+        "--",
+    ],
+    files = [
+        ":app-builder_linux",
+        "@docker",
+        "@dumb_init//file",
+        "@pack",
+    ],
+    repository = "gcr.io/manor/app-builder",
+    stamp = True,
+    visibility = ["//visibility:public"],
+)
+
+container_bundle(
+    name = "app-builder_bundle",
+    images = {
+        "gcr.io/manor/app-builder:{STABLE_VERSION}": ":app-builder_image",
+    },
+    visibility = ["//visibility:public"],
+)
