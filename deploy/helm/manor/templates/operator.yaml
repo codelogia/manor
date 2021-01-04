@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "manor.labels" . | nindent 4 }}
+    component: operator
+spec:
+  selector:
+    matchLabels:
+      {{- include "manor.selectorLabels" . | nindent 6 }}
+      component: operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        {{- include "manor.selectorLabels" . | nindent 8 }}
+        component: operator
+    spec:
+      containers:
+      - name: operator
+        args:
+        - --enable-leader-election
+        - --docker-host={{ printf "tcp://%s-docker-daemon.%s.svc:2375" .Release.Name .Release.Namespace }}
+        - --default-image-registry={{ printf "%s-registry.%s.svc" .Release.Name .Release.Namespace }}
+        - --app-builder-image={{ printf "%s:%s" .Values.app_builder.image.registry .Values.app_builder.image.tag }}
+        image: {{ printf "%s:%s" .Values.operator.image.registry .Values.operator.image.tag }}
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+      terminationGracePeriodSeconds: 10

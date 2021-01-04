@@ -1,0 +1,20 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
+load("//build/rules:go.bzl", "go_fmt", "go_mod_tidy", "go_vet")
+
+package(default_visibility = ["//visibility:public"])
+
+# gazelle:prefix github.com/codelogia/manor
+# gazelle:go_naming_convention_external go_default_library
+gazelle(name = "gazelle")
+
+go_fmt(
+    name = "go_fmt",
+)
+
+go_vet(
+    name = "go_vet",
+)
+
+go_mod_tidy(
+    name = "go_mod_tidy",
+)

@@ -1,0 +1,60 @@
+load("@io_bazel_rules_docker//container:container.bzl", "container_bundle", "container_image")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+package(default_visibility = ["//visibility:public"])
+
+go_library(
+    name = "operator_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/codelogia/manor/operator",
+    deps = [
+        "//operator/api/v1:api",
+        "//operator/controllers",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+        "@io_k8s_apimachinery//pkg/util/runtime:go_default_library",
+        "@io_k8s_client_go//kubernetes/scheme:go_default_library",
+        "@io_k8s_client_go//plugin/pkg/client/auth/gcp:go_default_library",
+        "@io_k8s_sigs_controller_runtime//:go_default_library",
+        "@io_k8s_sigs_controller_runtime//pkg/log/zap:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "operator",
+    embed = [":operator_lib"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
+    pure = "on",
+    static = "on",
+)
+
+go_binary(
+    name = "operator_linux",
+    out = "operator",
+    embed = [":operator_lib"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    static = "on",
+)
+
+container_image(
+    name = "operator_image",
+    cmd = ["/operator"],
+    files = [":operator_linux"],
+    repository = "gcr.io/manor/operator",
+    stamp = True,
+)
+
+container_bundle(
+    name = "operator_bundle",
+    images = {
+        "gcr.io/manor/operator:{STABLE_VERSION}": ":operator_image",
+    },
+)

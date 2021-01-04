@@ -1,0 +1,91 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-docker-daemon
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "manor.labels" . | nindent 4 }}
+    component: docker-daemon
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "manor.selectorLabels" . | nindent 4 }}
+    component: docker-daemon
+  ports:
+  - name: daemon
+    port: 2375
+    targetPort: daemon
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-docker-daemon-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "manor.labels" . | nindent 4 }}
+    component: docker-daemon
+data:
+  daemon.json: |
+    { "insecure-registries": [{{ printf "%s-registry.%s.svc" .Release.Name .Release.Namespace | quote }}] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-docker-daemon
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "manor.labels" . | nindent 4 }}
+    component: docker-daemon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "manor.selectorLabels" . | nindent 6 }}
+      component: docker-daemon
+  template:
+    metadata:
+      labels:
+        {{- include "manor.labels" . | nindent 8 }}
+        component: docker-daemon
+    spec:
+      containers:
+      - name: docker-daemon
+        image: "docker:dind"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: daemon
+          containerPort: 2375
+          protocol: TCP
+        env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        - name: DOCKER_DRIVER
+          value: overlay2
+        volumeMounts:
+        - name: docker
+          mountPath: /var/lib/docker
+          readOnly: false
+        securityContext:
+          privileged: true
+        livenessProbe:
+          tcpSocket:
+            port: 2375
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          tcpSocket:
+            port: 2375
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: config
+          mountPath: /etc/docker/daemon.json
+          subPath: daemon.json
+          readOnly: true
+      volumes:
+      - name: docker
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}-docker-daemon-config
